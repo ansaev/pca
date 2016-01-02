@@ -6,10 +6,6 @@ from matplotlib.pyplot import subplots, show
 
 
 def cov(data):
-    """
-        covariance matrix
-        note: specifically for mean-centered data
-    """
     N = data.shape[1]
     C = empty((N, N))
     for j in range(N):
@@ -19,11 +15,29 @@ def cov(data):
     return C
 
 
-def pca(data, pc_count = None):
-    """
-        Principal component analysis using eigenvalues
-        note: this mean-centers and auto-scales the data (in-place)
-    """
+def kaizer(pca_data, mean_nums, mean_vectors):
+    arr_del = []
+    arr_nums = mean_nums.tolist()
+    arr_vectors = mean_vectors.tolist()
+    arr_data = pca_data.tolist()
+    for i in range(len(arr_nums)):
+        if arr_nums[i] < 1:
+            arr_del.append(i)
+    arr_del.reverse()
+    for del_num in arr_del:
+        arr_nums.pop(del_num)
+        for i in range(len(arr_vectors)):
+            for j in range(len(arr_vectors[i])):
+                if j == del_num:
+                    arr_vectors[i].pop(j)
+        for i in range(len(arr_data)):
+            for j in range(len(arr_data[i])):
+                if j == del_num:
+                    arr_data[i].pop(j)
+    return array(arr_data), array(arr_nums), array(arr_vectors)
+
+
+def pca(data, pc_count=None):
     data -= mean(data, 0)
     data /= std(data, 0)
     C = cov(data)
@@ -33,27 +47,26 @@ def pca(data, pc_count = None):
     U = dot(V.T, data.T).T
     return U, E, V
 
-""" test data """
-data = array([randn(5) for k in range(100)])
-data[:50, 2:4] += 5
-data[50:, 2:5] += 5
 
 """ iris data """
 import xlrd
+
 book = xlrd.open_workbook("iris.xls")
 sheet = book.sheet_by_index(0)
 data_iris = []
 for i in range(sheet.nrows):
     row = sheet.row_values(i)
     data_iris.append(row[0:-1])
-print('data iris', data_iris)
 data_iris = array(data_iris)
-print('data iris', data_iris)
-print('data', data)
 """ visualize """
-# trans = pca(data, 3)[0]
-trans_iris = pca(data_iris)[0]
-
+trans_iris, E, V = pca(data_iris, 3)
+# print('E', E)
+# print('V', V)
+# print("trans_iris", trans_iris)
+trans_iris, E, V = kaizer(trans_iris, E, V)
+print('E', E)
+print('V', V)
+print("trans_iris", trans_iris)
 fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8) = subplots(1, 8)
 ax1.scatter(data_iris[:50, 0], data_iris[:50, 1], c='r')
 ax1.scatter(data_iris[50:100, 0], data_iris[50:100, 1], c='g')
@@ -79,14 +92,11 @@ ax6.scatter(data_iris[:50, 0], data_iris[:50, 2], c='r')
 ax6.scatter(data_iris[50:100, 0], data_iris[50:100, 2], c='g')
 ax6.scatter(data_iris[100:, 0], data_iris[100:, 2], c='b')
 
+ax7.scatter(trans_iris[:50, 0], trans_iris[:50, 0], c='r')
+ax7.scatter(trans_iris[50:100, 0], trans_iris[50:100, 0], c='g')
+ax7.scatter(trans_iris[100:, 0], trans_iris[100:, 0], c='b')
 
-
-
-ax8.scatter(trans_iris[:50, 0], trans_iris[:50, 1], c='r')
-ax8.scatter(trans_iris[50:100, 0], trans_iris[50:100, 1], c='g')
-ax8.scatter(trans_iris[100:, 0], trans_iris[100:, 1], c='b')
-# ax1.scatter(data[:50, 0], data[:50, 1], c='r')
-# ax1.scatter(data[50:, 0], data[50:, 1], c='b')
-# ax2.scatter(trans[:50, 0], trans[:50, 1], c='r')
-# ax2.scatter(trans[50:, 0], trans[50:, 1], c='b')
+# ax8.scatter(trans_iris[:50, 0], trans_iris[:50, 2], c='r')
+# ax8.scatter(trans_iris[50:100, 0], trans_iris[50:100, 2], c='g')
+# ax8.scatter(trans_iris[100:, 0], trans_iris[100:, 2], c='b')
 show()
